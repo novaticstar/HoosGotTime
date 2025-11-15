@@ -97,6 +97,7 @@ model UserSettings {
   maxStudyMinutesPerDay     Int
   maxStudyBlockMinutes      Int
   timeZone                  String  @default("America/New_York")
+  onboardingComplete        Boolean @default(false)
 }
 
 model Course {
