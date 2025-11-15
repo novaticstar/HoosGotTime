@@ -21,6 +21,47 @@ HoosGotTime is an AI agent that combines deterministic scheduling with Claude 3.
 
 Claude only handles the understanding/guidance flows; planning and learning are deterministic functions in `/lib`.
 
+## 📅 Calendar Functionality (Fully Implemented)
+
+HoosGotTime now has complete calendar functionality with Supabase database integration!
+
+### Features
+- **Smart Scheduling Algorithm**: Automatically generates optimized schedules based on classes, meals, and study time
+- **Database Integration**: Full Supabase/Prisma backend with all models implemented
+- **Sample Data**: Comprehensive seed script with demo courses, tasks, and schedule blocks
+- **API Routes**: Complete set of endpoints for schedule, task, and course management
+- **AI Integration**: Claude-powered task parsing, study plans, and summaries
+
+### Quick Start
+
+1. **Set up environment variables** (see section below)
+2. **Run the setup script**:
+   ```bash
+   ./scripts/setup-db.sh
+   ```
+   Or manually:
+   ```bash
+   npm install
+   npm run db:setup
+   ```
+3. **Start the app**:
+   ```bash
+   npm run dev
+   ```
+4. **Access the calendar** at `http://localhost:3000/app/schedule`
+
+For detailed setup instructions, see [docs/CALENDAR_SETUP.md](docs/CALENDAR_SETUP.md)
+
+### What's Included
+
+- ✅ **Core Libraries**: Prisma client, auth helpers, utilities, user management
+- ✅ **Scheduler**: Intelligent algorithm that respects constraints and priorities
+- ✅ **Database Schema**: Updated Prisma schema with all necessary models
+- ✅ **Seed Data**: 4 courses, 11 tasks, schedule blocks for demo
+- ✅ **API Routes**: GET/POST endpoints for schedule, tasks, courses
+- ✅ **AI Prompts**: Templates for task parsing, study plans, summaries
+- ✅ **Time Multipliers**: Learning system that adjusts estimates based on actual time
+
 ## 🔑 Environment & Supabase
 
 1. Duplicate `.env.example` to `.env.local`.
