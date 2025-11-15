@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useCallback, useMemo, useState } from "react"
 import { format, formatDistanceToNowStrict, isSameDay, startOfToday } from "date-fns"
-import { AlertTriangle, ClipboardEdit, GraduationCap, ListChecks } from "lucide-react"
+import { AlertTriangle, GraduationCap } from "lucide-react"
 
 import { AssistantActionTrigger, AssistantIntent, AssistantPanel } from "@/components/assistant/AssistantPanel"
 import { DayView, ViewMode } from "@/components/schedule/DayView"

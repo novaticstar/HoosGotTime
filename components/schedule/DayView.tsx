@@ -15,7 +15,7 @@ import {
 import { CalendarDays, ChevronLeft, ChevronRight, RefreshCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { blockTypeColors, blockTypeLabels, ScheduleBlock } from "@/lib/schedule-data"
+import { blockTypeColors, ScheduleBlock } from "@/lib/schedule-data"
 import { cn } from "@/lib/utils"
 
 const START_HOUR = 6
