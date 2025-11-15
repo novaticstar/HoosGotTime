@@ -152,14 +152,7 @@ export default async function TasksPage() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Parse a syllabus snippet</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SyllabusWidget />
-          </CardContent>
-        </Card>
+        <SyllabusWidget />
       </div>
 
       <Card>
