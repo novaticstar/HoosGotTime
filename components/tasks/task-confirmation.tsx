@@ -119,11 +119,11 @@ export function TaskConfirmation({ parsedData, onComplete }: TaskConfirmationPro
     .reduce((sum, task) => sum + task.estimatedMinutes, 0);
 
   const typeColors: Record<string, string> = {
-    homework: "bg-blue-100 text-blue-800 border-blue-200",
+    homework: "bg-brand-100 text-brand-800 border-brand-200",
     exam: "bg-red-100 text-red-800 border-red-200",
-    project: "bg-purple-100 text-purple-800 border-purple-200",
-    reading: "bg-green-100 text-green-800 border-green-200",
-    quiz: "bg-yellow-100 text-yellow-800 border-yellow-200",
+    project: "bg-uva-orange-100 text-uva-orange-800 border-uva-orange-200",
+    reading: "bg-brand-200 text-brand-700 border-brand-300",
+    quiz: "bg-uva-orange-200 text-uva-orange-700 border-uva-orange-300",
     other: "bg-gray-100 text-gray-800 border-gray-200",
   };
 

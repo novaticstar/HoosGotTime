@@ -179,11 +179,11 @@ export const blockTypeLabels: Record<ScheduleBlockType, string> = {
 
 export const blockTypeColors: Record<ScheduleBlockType, string> = {
   sleep: "bg-slate-200 text-slate-700",
-  class: "bg-blue-100 text-blue-800 border border-blue-200",
-  study: "bg-emerald-100 text-emerald-800 border border-emerald-200",
+  class: "bg-brand-100 text-brand-800 border border-brand-200",
+  study: "bg-uva-orange-100 text-uva-orange-800 border border-uva-orange-200",
   meal: "bg-amber-100 text-amber-800 border border-amber-200",
   travel: "bg-zinc-100 text-zinc-700 border border-dashed border-zinc-300",
-  wellness: "bg-purple-100 text-purple-800 border border-purple-200",
+  wellness: "bg-brand-200 text-brand-700 border border-brand-300",
 }
 
 const courseSet = new Set<string>()
