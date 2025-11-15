@@ -1,20 +1,20 @@
-import { getSupabaseServerClient } from "@/utils/supabase/server";
-import { redirect } from "next/navigation";
+import { getSupabaseServerClient } from "@/utils/supabase/server"
 
-/**
- * Server-side authentication helper
- * Ensures user is authenticated and returns user data
- */
 export async function requireUser() {
-  const supabase = getSupabaseServerClient();
+  const supabase = getSupabaseServerClient()
 
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  if (!user) {
-    redirect("/auth");
+  if (!session) {
+    throw new Error("Unauthorized: No active session")
   }
 
-  return user;
+  const user = session.user
+
+  return {
+    id: user.id,
+    email: user.email ?? "",
+  }
 }

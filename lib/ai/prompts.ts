@@ -1,137 +1,164 @@
-/**
- * AI Prompt templates for various features
- */
+export function naturalLanguageTaskPrompt({
+  text,
+  fallbackDueDate,
+}: {
+  text: string
+  fallbackDueDate: string
+}) {
+  return `You are a task parser for a student scheduling app. Parse the following natural language input into a structured task list.
 
-export function syllabusExtractionPrompt(syllabusText: string) {
-  return `You are a helpful assistant that extracts tasks, assignments, exams, and important dates from course syllabi.
+Input: "${text}"
 
-Analyze the following syllabus text and extract all tasks, assignments, exams, quizzes, projects, and readings with their due dates.
+Today's date: ${new Date().toISOString().slice(0, 10)}
+Fallback due date (if no date specified): ${fallbackDueDate}
 
-For each item, provide:
-1. title: A clear, concise title for the task
-2. description: Any additional details about the task (optional)
-3. type: The type of task - one of: "homework", "exam", "project", "reading", "quiz", "other"
-4. dueDate: The due date in ISO 8601 format (YYYY-MM-DD) if available, or null if no specific date
-5. estimatedMinutes: Your best estimate of how long this task will take in minutes (be realistic)
-6. courseInfo: Any course name or code mentioned in the syllabus (optional)
+Instructions:
+1. Extract all tasks mentioned in the input
+2. Infer due dates from natural language (e.g., "tomorrow", "next week", "Friday")
+3. Estimate time in minutes based on task complexity (default: 90 minutes)
+4. Classify task type as one of: homework, exam, project, reading, quiz, other, life
+5. Return ONLY valid JSON array with no additional text
 
-Return your response as a JSON object with this structure:
-{
-  "courseName": "The course name if found",
-  "courseCode": "The course code if found",
-  "tasks": [
-    {
-      "title": "Assignment 1",
-      "description": "Complete problems 1-10",
-      "type": "homework",
-      "dueDate": "2025-02-15",
-      "estimatedMinutes": 120
-    }
-  ]
-}
-
-Important guidelines:
-- Only include actual tasks/assignments, not general course policies
-- If no due date is mentioned, set dueDate to null
-- Be generous with time estimates - students often underestimate
-- For exams, estimate study time needed, not just exam duration
-- Combine related items (e.g., "Read Chapter 1-3" instead of three separate tasks)
-- If the text doesn't contain any tasks, return an empty tasks array
-
-Syllabus text:
-${syllabusText}`;
-}
-
-export function naturalLanguageTaskPrompt(userInput: string) {
-  return `You are a helpful assistant that converts natural language task descriptions into structured task objects.
-
-The user has provided the following task description:
-"${userInput}"
-
-Extract all tasks mentioned and return them as a JSON array. For each task, provide:
-1. title: A clear, concise title
-2. description: Additional details if any (can be empty string)
-3. type: Best guess from: "homework", "exam", "project", "reading", "quiz", "life", "other"
-4. dueDate: ISO 8601 date (YYYY-MM-DD) if mentioned, otherwise null
-5. estimatedMinutes: Realistic time estimate in minutes
-
-Return ONLY a valid JSON array like this:
+Response format:
 [
   {
-    "title": "Finish calculus homework",
-    "description": "Problems 1-20 from chapter 5",
-    "type": "homework",
-    "dueDate": "2025-02-01",
-    "estimatedMinutes": 90
+    "title": "Task title",
+    "due_date": "YYYY-MM-DD",
+    "estimated_minutes": 90,
+    "type": "homework"
   }
 ]
 
-If no tasks can be extracted, return an empty array: []`;
+Return only the JSON array, no other text.`
 }
 
-export function dailySummaryPrompt(date: string, scheduleData: any) {
-  return `Generate a friendly daily summary for ${date}.
+export function syllabusExtractionPrompt(syllabusText: string) {
+  return `You are a syllabus parser for a student scheduling app. Extract all assignments, exams, and deadlines from the syllabus.
 
-Schedule data: ${JSON.stringify(scheduleData, null, 2)}
+Syllabus text:
+${syllabusText}
 
-Provide a brief, encouraging summary of the day ahead including:
-- Key classes and their times
-- Important tasks and deadlines
-- Estimated study time needed
-- Any scheduling conflicts or tight transitions
-- A motivational closing remark
+Instructions:
+1. Extract every assignment, exam, quiz, project, or reading with a due date
+2. Parse dates into YYYY-MM-DD format
+3. Estimate time required in minutes (exams: 180-240, homework: 60-120, readings: 30-90, projects: 240-480)
+4. Classify each item as: homework, exam, project, reading, quiz, or other
+5. Return ONLY valid JSON array with no additional text
 
-Keep it concise (3-4 sentences) and friendly.`;
-}
+Response format:
+[
+  {
+    "title": "Assignment name",
+    "due_date": "YYYY-MM-DD",
+    "estimated_minutes": 90,
+    "type": "homework"
+  }
+]
 
-export function weeklySummaryPrompt(startDate: string, endDate: string, scheduleData: any) {
-  return `Generate a helpful weekly summary for the week of ${startDate} to ${endDate}.
-
-Schedule data: ${JSON.stringify(scheduleData, null, 2)}
-
-Provide an overview including:
-- Total classes and major commitments
-- Key deadlines and exams
-- Busiest days
-- Recommended prep time for upcoming exams
-- Wellness tips for staying balanced
-
-Keep it helpful and concise (4-5 sentences).`;
+Return only the JSON array, no other text.`
 }
 
 export function studyContentPrompt(task: any, materialText?: string) {
-  const materialSection = materialText
-    ? `\n\nStudy Materials:\n${materialText}`
-    : "";
+  const material = materialText
+    ? `\n\nStudy materials:\n${materialText}`
+    : ""
 
-  return `You are a helpful study assistant. Generate comprehensive study content for this task:
+  return `You are a study assistant helping a student prepare for a task. Generate comprehensive study content.
 
 Task: ${task.title}
-${task.description ? `Description: ${task.description}` : ""}
 Type: ${task.type}
-${task.dueAt ? `Due: ${task.dueAt}` : ""}${materialSection}
+Due: ${task.dueAt}
+Estimated time: ${task.estimatedMinutes} minutes
+${task.description ? `Description: ${task.description}` : ""}${material}
 
-Generate the following study materials in JSON format:
+Generate the following content:
+
+1. **Study Plan**: Break down how to study for this task into concrete steps with time estimates
+2. **Flashcards**: Create 8-12 flashcards covering key concepts (each with front/back)
+3. **Practice Questions**: Generate 5-8 practice questions with answers
+
+Return ONLY valid JSON in this exact format:
 {
-  "study_plan": {
-    "overview": "Brief overview of what to study",
-    "steps": [
-      { "title": "Step title", "description": "What to do", "estimatedMinutes": 30 }
-    ],
-    "tips": ["Study tip 1", "Study tip 2"]
-  },
+  "study_plan": [
+    { "step": "Review lecture notes", "minutes": 30, "order": 1 },
+    { "step": "Read chapter 3", "minutes": 45, "order": 2 }
+  ],
   "flashcards": [
-    { "front": "Question or term", "back": "Answer or definition" }
+    { "front": "What is...?", "back": "Answer..." }
   ],
   "practice_questions": [
-    {
-      "question": "Practice question text",
-      "options": ["A) ...", "B) ...", "C) ...", "D) ..."],
-      "correctAnswer": "A",
-      "explanation": "Why this is correct"
-    }
+    { "question": "Question text?", "answer": "Answer text", "difficulty": "medium" }
   ]
 }
 
-Generate at least 5-10 flashcards and 3-5 practice questions. Make sure all content is relevant to the task.`;
+Return only the JSON, no other text.`
+}
+
+export function dailySummaryPrompt({
+  date,
+  schedule,
+  eatingStats,
+  atRiskTasks,
+}: {
+  date: string
+  schedule: any[]
+  eatingStats: any
+  atRiskTasks: any[]
+}) {
+  return `You are a helpful scheduling assistant. Provide a brief, friendly daily summary for the student.
+
+Date: ${date}
+
+Schedule for today:
+${schedule.map((block) => `- ${block.type}: ${block.label || "Untitled"} (${new Date(block.startAt).toLocaleTimeString()} - ${new Date(block.endAt).toLocaleTimeString()})`).join("\n")}
+
+Eating stats: ${eatingStats.scheduledMeals} meals scheduled today
+
+At-risk tasks (due soon):
+${atRiskTasks.length > 0 ? atRiskTasks.map((t) => `- ${t.title} (due ${new Date(t.dueAt).toLocaleDateString()})`).join("\n") : "None"}
+
+Write a brief, encouraging summary (3-4 sentences) highlighting:
+1. What their day looks like
+2. Whether they have adequate meal breaks
+3. Any urgent tasks they should prioritize
+
+Keep it friendly, concise, and actionable. Don't use lists or bullet points in your response.`
+}
+
+export function weeklySummaryPrompt({
+  startDate,
+  endDate,
+  blocks,
+  atRiskTasks,
+}: {
+  startDate: string
+  endDate: string
+  blocks: any[]
+  atRiskTasks: any[]
+}) {
+  const studyBlocks = blocks.filter((b) => b.type === "study")
+  const totalStudyMinutes = studyBlocks.reduce((sum, b) => {
+    const duration =
+      (new Date(b.endAt).getTime() - new Date(b.startAt).getTime()) /
+      (1000 * 60)
+    return sum + duration
+  }, 0)
+
+  return `You are a helpful scheduling assistant. Provide a brief weekly planning summary for the student.
+
+Week: ${startDate} to ${endDate}
+
+Total study blocks scheduled: ${studyBlocks.length}
+Total study time: ${Math.round(totalStudyMinutes)} minutes (${(totalStudyMinutes / 60).toFixed(1)} hours)
+
+At-risk tasks:
+${atRiskTasks.length > 0 ? atRiskTasks.map((t) => `- ${t.title} (due ${new Date(t.dueAt).toLocaleDateString()}, ${t.estimatedMinutes} min)`).join("\n") : "None"}
+
+Write a brief weekly overview (3-5 sentences) that:
+1. Summarizes their study time commitment
+2. Highlights any concerning gaps or overload
+3. Suggests priorities based on at-risk tasks
+4. Offers encouragement
+
+Keep it friendly, actionable, and motivating. Don't use lists or bullet points in your response.`
 }

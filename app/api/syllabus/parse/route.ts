@@ -15,9 +15,12 @@ export async function POST(req: NextRequest) {
       const formData = await req.formData();
       const file = formData.get("file") as File;
 
-      if (!file) {
-        return NextResponse.json({ error: "No file provided" }, { status: 400 });
-      }
+  const msg = await anthropic.messages.create({
+    model: "claude-sonnet-4-5-20250929",
+    max_tokens: 1024,
+    temperature: 0,
+    messages: [{ role: "user", content: prompt }],
+  })
 
       // Convert file to buffer
       const arrayBuffer = await file.arrayBuffer();
