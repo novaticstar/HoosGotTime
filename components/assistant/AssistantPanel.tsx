@@ -23,7 +23,11 @@ export interface AssistantActionTrigger {
 
 export interface AssistantPanelProps {
   selectedDate: Date
-  onRunAction?: (intent: AssistantIntent, payload?: string) => Promise<string>
+  onRunAction?: (
+    intent: AssistantIntent,
+    payload?: string,
+    conversationHistory?: Array<{ role: string; content: string }>
+  ) => Promise<string>
   externalAction?: AssistantActionTrigger | null
   contextualSuggestion?: { label: string; intent: AssistantIntent; payload?: string } | null
 }
@@ -87,7 +91,11 @@ export function AssistantPanel({ selectedDate, onRunAction, externalAction, cont
 
   const resolveIntent = async (intent: AssistantIntent, payload?: string) => {
     if (onRunAction) {
-      return onRunAction(intent, payload)
+      // Pass conversation history (excluding the welcome message) to the action handler
+      const history = messages
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.content }))
+      return onRunAction(intent, payload, history)
     }
     await new Promise((resolve) => setTimeout(resolve, 500))
     switch (intent) {

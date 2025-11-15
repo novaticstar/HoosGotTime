@@ -162,3 +162,45 @@ Write a brief weekly overview (3-5 sentences) that:
 
 Keep it friendly, actionable, and motivating. Don't use lists or bullet points in your response.`
 }
+
+export function chatPrompt({
+  message,
+  conversationHistory,
+  userContext,
+}: {
+  message: string
+  conversationHistory?: Array<{ role: string; content: string }>
+  userContext?: {
+    currentDate?: string
+    upcomingTasks?: any[]
+    todaySchedule?: any[]
+  }
+}) {
+  const context = userContext
+    ? `
+Current context:
+- Today's date: ${userContext.currentDate || new Date().toISOString().slice(0, 10)}
+${userContext.todaySchedule && userContext.todaySchedule.length > 0 ? `- Today's schedule: ${userContext.todaySchedule.map((b) => `${b.type} (${b.label || "Untitled"})`).join(", ")}` : ""}
+${userContext.upcomingTasks && userContext.upcomingTasks.length > 0 ? `- Upcoming tasks: ${userContext.upcomingTasks.map((t) => `${t.title} (due ${t.dueAt})`).join(", ")}` : ""}
+`
+    : ""
+
+  return `You are a helpful AI scheduling assistant for a student productivity app called "HoosGotTime". You help students manage their time, tasks, and schedule effectively.
+
+Your capabilities include:
+- Helping students understand their schedule and commitments
+- Providing advice on time management and study strategies
+- Answering questions about tasks, deadlines, and workload
+- Offering encouragement and motivation
+- Suggesting ways to optimize their schedule
+
+${context}
+
+Keep your responses:
+- Friendly and encouraging
+- Concise (2-4 sentences unless more detail is explicitly requested)
+- Actionable and practical
+- Focused on helping the student succeed
+
+User message: ${message}`
+}
