@@ -4,27 +4,27 @@
 
 :root {
   --background: 0 0% 100%;
-  --foreground: 224 71.4% 4.1%;
-  --muted: 220 14.3% 95.9%;
-  --muted-foreground: 220 8.9% 46.1%;
-  --accent: 220 14.3% 95.9%;
-  --accent-foreground: 220 8.9% 46.1%;
-  --border: 220 13% 91%;
-  --input: 220 13% 91%;
-  --ring: 221.2 83.2% 53.3%;
+  --foreground: 225 36% 22%;
+  --muted: 222 11% 95%;
+  --muted-foreground: 225 15% 46%;
+  --accent: 24 100% 95%;
+  --accent-foreground: 24 100% 45%;
+  --border: 222 11% 91%;
+  --input: 222 11% 91%;
+  --ring: 225 36% 22%;
   --radius: 0.75rem;
 }
 
 .dark {
-  --background: 224 71.4% 4.1%;
-  --foreground: 210 20% 98%;
-  --muted: 215 27.9% 16.9%;
-  --muted-foreground: 217.9 10.6% 64.9%;
-  --accent: 215 27.9% 16.9%;
-  --accent-foreground: 210 20% 98%;
-  --border: 215 27.9% 16.9%;
-  --input: 215 27.9% 16.9%;
-  --ring: 216 12.2% 83.9%;
+  --background: 225 36% 8%;
+  --foreground: 222 11% 95%;
+  --muted: 225 30% 18%;
+  --muted-foreground: 222 11% 70%;
+  --accent: 24 100% 20%;
+  --accent-foreground: 24 100% 95%;
+  --border: 225 30% 18%;
+  --input: 225 30% 18%;
+  --ring: 222 11% 80%;
 }
 
 body {
