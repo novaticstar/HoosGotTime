@@ -21,6 +21,7 @@ export function getSupabaseServerClient() {
 	const cookieStore = cookies();
 
 	return createServerClient(supabaseUrl!, supabaseAnonKey!, {
+		cookieEncoding: "base64url",
 		cookies: {
 			getAll() {
 				return cookieStore.getAll().map(({ name, value }) => ({ name, value }));

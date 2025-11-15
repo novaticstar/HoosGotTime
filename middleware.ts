@@ -1,10 +1,30 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { createMiddlewareClient } from "@supabase/auth-helpers-nextjs";
+import { createServerClient } from "@supabase/ssr";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 export async function middleware(req: NextRequest) {
 	const res = NextResponse.next({ request: { headers: req.headers } });
-	const supabase = createMiddlewareClient({ req, res });
+
+	if (!supabaseUrl || !supabaseAnonKey) {
+		return res;
+	}
+
+	const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+		cookieEncoding: "base64url",
+		cookies: {
+			getAll() {
+				return req.cookies.getAll().map(({ name, value }) => ({ name, value }));
+			},
+			setAll(cookies) {
+				cookies.forEach(({ name, value, options }) => {
+					res.cookies.set({ name, value, ...options });
+				});
+			},
+		},
+	});
 
 	const {
 		data: { session },
