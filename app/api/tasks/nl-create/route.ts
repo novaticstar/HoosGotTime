@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const prompt = buildTaskParserPrompt(text)
 
   const msg = await anthropic.messages.create({
-    model: CLAUDE_MODELS.SONNET,
+    model: "claude-sonnet-4-5-20250929",
     max_tokens: 1024,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }],
