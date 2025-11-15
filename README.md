@@ -21,17 +21,19 @@ HoosGotTime is an AI agent that combines deterministic scheduling with Claude 3.
 
 Claude only handles the understanding/guidance flows; planning and learning are deterministic functions in `/lib`.
 
-## 🔑 Environment & Claude key
+## 🔑 Environment & Supabase
 
-1. Grab your Claude API key from Anthropic.
-2. Create `.env.local` (never commit) and add:
+1. Duplicate `.env.example` to `.env.local`.
+2. Fill in:
+	- `ANTHROPIC_API_KEY` – Claude 3.5 key from Anthropic.
+	- `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` – found in Supabase project settings (these ship to the browser).
+	- `SUPABASE_SERVICE_ROLE_KEY` (optional) – only needed for future cron jobs or server actions that require elevated access.
+	- `DATABASE_URL` – **use the Supabase PgBouncer string** (port `6543`) with `pgbouncer=true&connection_limit=1`. This is what Prisma/Next server use at runtime.
+	- `DIRECT_URL` – Supabase direct connection string (port `5432`). Prisma migrations read this when they need non-pooled access.
 
-```
-ANTHROPIC_API_KEY=<YOUR_CLAUDE_API_KEY_HERE>
-DATABASE_URL=postgresql://user:password@localhost:5432/hoosgottime
-```
+`lib/claude.ts` throws if `ANTHROPIC_API_KEY` is missing. The Supabase helpers in `utils/supabase/*` throw when the public URL/anon key are absent, so the app fails fast instead of silently missing data.
 
-`lib/claude.ts` throws if the key is missing. Only load `anthropic` in server-side modules.
+> **Heads up:** Supabase PgBouncer sometimes causes `prisma db push` to hang. If that happens, run `npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > supabase-init.sql` and paste the generated SQL into the Supabase SQL editor. Once the tables exist, you can delete the temporary SQL file.
 
 ## 🗄️ Prisma schema snapshot
 
@@ -46,6 +48,8 @@ DATABASE_URL=postgresql://user:password@localhost:5432/hoosgottime
 - `lib/agentData.ts` – placeholder helpers powering daily summary prompts
 - `app/api/*` – Claude-powered APIs for syllabus parsing, NL task creation, study assets, and eating-aware daily summaries
 - `components/ui/*` – shadcn-inspired primitives (Button, Badge, Card)
+- `utils/supabase/server.ts` & `client.ts` – SSR/browser clients wired to Supabase cookies
+- `middleware.ts` – keeps Supabase auth cookies in sync via PgBouncer-safe headers
 
 ## 📄 Frontend flow outline
 
