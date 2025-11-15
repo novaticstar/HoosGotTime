@@ -83,30 +83,146 @@ export default function SchedulePage() {
   }, [])
 
   const handleAssistantIntent = useCallback(
-    async (intent: AssistantIntent, payload?: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 350))
-      const dayLabel = format(selectedDate, "EEEE")
-      switch (intent) {
-        case "summarize-today":
-          return `Here’s ${dayLabel}: classes anchor your morning, meals guard your energy, and I stacked two study blocks after lunch.`
-        case "summarize-week":
-          return "Week overview: Tue/Thu are heavy, so I left Wednesday flexible for catch-up and recovery." 
-        case "parse-syllabus":
-          return "Paste the syllabus text and I’ll extract tasks with due dates plus study recommendations."
-        case "nl-create":
-          return "Drafted tasks from your note—confirm to save them and I’ll queue the scheduler."
-        case "study-plan":
-          return payload
-            ? `I’ll craft a study plan for ${payload}: spaced repetition, quick recall drills, and flashcards at night. Ready?`
-            : "Pick a task and I’ll break it into study reps."
-        case "describe-now":
-          return "You’re in a buffer zone. Want me to slot a quick win or open the study view for the next block?"
-        case "free-form":
-        default:
-          return payload ? `Logged your note: ${payload}` : "Noted!"
+    async (
+      intent: AssistantIntent,
+      payload?: string,
+      conversationHistory?: Array<{ role: string; content: string }>
+    ) => {
+      try {
+        const dayLabel = format(selectedDate, "EEEE, MMMM d")
+        const todayBlocks = filteredBlocks.filter((block) =>
+          isSameDay(new Date(block.start), selectedDate)
+        )
+
+        switch (intent) {
+          case "summarize-today": {
+            const response = await fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: `Can you give me a summary of my day on ${dayLabel}?`,
+                conversationHistory,
+                userContext: {
+                  currentDate: format(selectedDate, "yyyy-MM-dd"),
+                  todaySchedule: todayBlocks.map((b) => ({
+                    type: b.type,
+                    label: b.title,
+                    start: b.start,
+                    end: b.end,
+                  })),
+                  upcomingTasks: atRiskTasks.map((t) => ({
+                    title: t.title,
+                    dueAt: format(new Date(t.dueDate), "yyyy-MM-dd"),
+                  })),
+                },
+              }),
+            })
+            const data = await response.json()
+            return data.response || `Here's ${dayLabel}: classes anchor your morning, meals guard your energy, and I stacked two study blocks after lunch.`
+          }
+
+          case "summarize-week": {
+            const response = await fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: "Can you give me a summary of my week ahead?",
+                conversationHistory,
+                userContext: {
+                  currentDate: format(selectedDate, "yyyy-MM-dd"),
+                  upcomingTasks: atRiskTasks.map((t) => ({
+                    title: t.title,
+                    dueAt: format(new Date(t.dueDate), "yyyy-MM-dd"),
+                  })),
+                },
+              }),
+            })
+            const data = await response.json()
+            return data.response || "Week overview: Tue/Thu are heavy, so I left Wednesday flexible for catch-up and recovery."
+          }
+
+          case "parse-syllabus":
+            return "I can help you extract tasks from your syllabus! Please paste your syllabus text and I'll identify all assignments, exams, and deadlines with due dates."
+
+          case "nl-create":
+            return "I can help you create tasks from natural language! Just tell me what you need to do, like 'finish math homework by Friday' or 'study for bio exam next week', and I'll parse it into structured tasks."
+
+          case "study-plan": {
+            if (!payload) {
+              return "Pick a task and I'll break it into study steps with time estimates, create flashcards, and generate practice questions to help you prepare."
+            }
+            const response = await fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: `Can you help me create a study plan for: ${payload}`,
+                conversationHistory,
+                userContext: {
+                  currentDate: format(selectedDate, "yyyy-MM-dd"),
+                },
+              }),
+            })
+            const data = await response.json()
+            return data.response || `I'll craft a study plan for ${payload}: spaced repetition, quick recall drills, and flashcards at night. Ready?`
+          }
+
+          case "describe-now": {
+            const response = await fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: payload || "What should I be focusing on right now?",
+                conversationHistory,
+                userContext: {
+                  currentDate: format(selectedDate, "yyyy-MM-dd"),
+                  todaySchedule: todayBlocks.map((b) => ({
+                    type: b.type,
+                    label: b.title,
+                    start: b.start,
+                    end: b.end,
+                  })),
+                },
+              }),
+            })
+            const data = await response.json()
+            return data.response || "You're in a buffer zone. Want me to slot a quick win or open the study view for the next block?"
+          }
+
+          case "free-form":
+          default: {
+            if (!payload) return "I'm here to help! What would you like to know?"
+
+            const response = await fetch("/api/chat/message", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: payload,
+                conversationHistory,
+                userContext: {
+                  currentDate: format(selectedDate, "yyyy-MM-dd"),
+                  todaySchedule: todayBlocks.map((b) => ({
+                    type: b.type,
+                    label: b.title,
+                    start: b.start,
+                    end: b.end,
+                  })),
+                  upcomingTasks: atRiskTasks.map((t) => ({
+                    title: t.title,
+                    dueAt: format(new Date(t.dueDate), "yyyy-MM-dd"),
+                  })),
+                },
+              }),
+            })
+            const data = await response.json()
+            return data.response || "I'm here to help with your schedule and tasks!"
+          }
+        }
+      } catch (error) {
+        console.error("Error handling assistant intent:", error)
+        return "Sorry, I encountered an error. Please try again."
       }
     },
-    [selectedDate]
+    [selectedDate, filteredBlocks, atRiskTasks]
   )
 
   const handleGenerateSchedule = () => handleActionIntent("summarize-week")
