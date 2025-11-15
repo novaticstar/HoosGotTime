@@ -8,7 +8,6 @@ const DEFAULT_SETTINGS = {
   maxStudyMinutesPerDay: 360,
   maxStudyBlockMinutes: 90,
   timeZone: "America/New_York",
-  onboardingComplete: false,
 }
 
 type MealSeed = {
