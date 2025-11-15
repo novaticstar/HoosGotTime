@@ -18,13 +18,23 @@ enum TaskType {
   exam
   project
   reading
+  quiz
   other
   life
 }
 
 enum TaskStatus {
   pending
+  in_progress
   completed
+  overdue
+}
+
+enum TaskCreatedFrom {
+  syllabus
+  manual
+  nl_input
+  calendar
 }
 
 enum StudyMaterialSource {
@@ -43,6 +53,23 @@ enum EstimateFeedback {
   up
   down
   neutral
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+enum ScheduleBlockType {
+  class
+  meal
+  study
+  travel
+  sleep
+  event
+  snack
 }
 
 model User {
@@ -69,6 +96,7 @@ model UserSettings {
   commuteBufferMinutes      Int
   maxStudyMinutesPerDay     Int
   maxStudyBlockMinutes      Int
+  timeZone                  String  @default("America/New_York")
 }
 
 model Course {
@@ -102,9 +130,11 @@ model Task {
   description      String?
   type             TaskType
   dueAt            DateTime
-  estimatedMinutes Int
+  estimatedMinutes Int             @default(0)
   status           TaskStatus     @default(pending)
-  createdFrom      String
+  createdFrom      TaskCreatedFrom @default(manual)
+  completedAt      DateTime?
+  atRisk           Boolean        @default(false)
   timeLogs         TaskTimeLog[]
   studyMaterials   StudyMaterial[]
   studyContent     StudyContent[]
@@ -125,7 +155,7 @@ model MealPreference {
   id                 String @id @default(uuid())
   userId             String
   user               User   @relation(fields: [userId], references: [id])
-  mealType           String
+  mealType           MealType
   earliestTime       String
   latestTime         String
   typicalDurationMin Int
@@ -139,12 +169,13 @@ model ScheduleBlock {
   date       DateTime
   startAt    DateTime
   endAt      DateTime
-  type       String
+  type       ScheduleBlockType
   label      String?
   taskId     String?
   task       Task?    @relation("TaskBlocks", fields: [taskId], references: [id])
   courseId   String?
-  confidence Float?
+  confidence Float    @default(1.0)
+  meta       Json?
 }
 
 model StudyMaterial {
@@ -177,4 +208,6 @@ model UserMultiplier {
   taskType   TaskType?
   multiplier Float    @default(1.0)
   updatedAt  DateTime @default(now())
+
+  @@unique([userId, courseId, taskType])
 }

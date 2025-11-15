@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { anthropic } from "@/lib/claude"
+import { studyContentPrompt } from "@/lib/ai/prompts"
+import { prisma } from "@/lib/prisma"
 
 export async function POST(req: NextRequest) {
   const { task, materialText } = await req.json()
@@ -8,38 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "task payload is required" }, { status: 400 })
   }
 
-  const prompt = `
-You are a study coach for a busy university student.
-
-Given:
-Task:
-${JSON.stringify(task, null, 2)}
-
-Source material:
-"""${materialText || "N/A"}"""
-
-Create:
-1. A structured study plan.
-2. 8 flashcards.
-3. 5 practice questions.
-
-Output JSON ONLY:
-
-{
-  "study_plan": {
-    "overview": "...",
-    "sessions": [
-      { "title": "...", "duration_minutes": 45, "focus": "..." }
-    ]
-  },
-  "flashcards": [
-    { "question": "...", "answer": "..." }
-  ],
-  "practice_questions": [
-    { "question": "...", "answer": "...", "explanation": "..." }
-  ]
-}
-`
+  const prompt = studyContentPrompt(task, materialText)
 
   const msg = await anthropic.messages.create({
     model: "claude-3-5-sonnet-20241022",
@@ -51,6 +22,24 @@ Output JSON ONLY:
   const raw = msg.content[0]?.type === "text" ? msg.content[0].text : ""
   try {
     const parsed = JSON.parse(raw)
+
+    if (task?.id) {
+      const payloads = [
+        { type: "study_plan", content: parsed.study_plan },
+        { type: "flashcards", content: parsed.flashcards },
+        { type: "quiz", content: parsed.practice_questions },
+      ]
+
+      await prisma.studyContent.createMany({
+        data: payloads.map((entry) => ({
+          taskId: task.id,
+          type: entry.type as "study_plan" | "flashcards" | "quiz",
+          contentJson: JSON.stringify(entry.content ?? {}),
+          model: "claude-3-5-sonnet-20241022",
+        })),
+      })
+    }
+
     return NextResponse.json(parsed)
   } catch (error) {
     console.error("Study JSON parse error", error, raw)
