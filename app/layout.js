@@ -9,13 +9,22 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body>
-        <header style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>
-          <h1>HoosGotTime</h1>
-        </header>
-        <main style={{ padding: '1rem' }}>{children}</main>
-        <footer style={{ padding: '1rem', borderTop: '1px solid #eee' }}>
-          Built with Next.js
-        </footer>
+        <div className="app-shell">
+          <header className="app-header">
+            <div className="brand">
+              <div className="logo">HGT</div>
+              <h1 className="brand-title">HoosGotTime</h1>
+            </div>
+            <nav className="top-nav">
+              <a className="nav-link">Home</a>
+              <a className="nav-link">Docs</a>
+            </nav>
+          </header>
+
+          <main className="app-main">{children}</main>
+
+          <footer className="app-footer">Built with Next.js</footer>
+        </div>
       </body>
     </html>
   )
