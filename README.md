@@ -30,6 +30,7 @@ Claude only handles the understanding/guidance flows; planning and learning are 
 	- `SUPABASE_SERVICE_ROLE_KEY` (optional) – only needed for future cron jobs or server actions that require elevated access.
 	- `DATABASE_URL` – **use the Supabase PgBouncer string** (port `6543`) with `pgbouncer=true&connection_limit=1`. This is what Prisma/Next server use at runtime.
 	- `DIRECT_URL` – Supabase direct connection string (port `5432`). Prisma migrations read this when they need non-pooled access.
+	- `ALLOW_DEMO_USER` (optional) – set to `1` only if you explicitly want to bypass Supabase auth and use the built-in demo account for local UI previews.
 
 `lib/claude.ts` throws if `ANTHROPIC_API_KEY` is missing. The Supabase helpers in `utils/supabase/*` throw when the public URL/anon key are absent, so the app fails fast instead of silently missing data.
 
