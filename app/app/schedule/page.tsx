@@ -192,6 +192,7 @@ export default function SchedulePage() {
           default: {
             if (!payload) return "I'm here to help! What would you like to know?"
 
+            console.log("Making free-form API call with payload:", payload)
             const response = await fetch("/api/chat/message", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
@@ -213,12 +214,30 @@ export default function SchedulePage() {
                 },
               }),
             })
+
+            if (!response.ok) {
+              console.error("API response not OK:", response.status, response.statusText)
+              const errorData = await response.json().catch(() => null)
+              console.error("API error details:", errorData)
+              throw new Error(`API request failed: ${response.status} ${response.statusText}`)
+            }
+
             const data = await response.json()
-            return data.response || "I'm here to help with your schedule and tasks!"
+            console.log("API response data:", data)
+
+            if (!data.response) {
+              console.warn("API response missing 'response' field:", data)
+              return "I'm here to help with your schedule and tasks!"
+            }
+
+            return data.response
           }
         }
       } catch (error) {
         console.error("Error handling assistant intent:", error)
+        if (error instanceof Error) {
+          return `Sorry, I encountered an error: ${error.message}. Please make sure your ANTHROPIC_API_KEY is configured.`
+        }
         return "Sorry, I encountered an error. Please try again."
       }
     },
