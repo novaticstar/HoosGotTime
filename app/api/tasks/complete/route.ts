@@ -11,27 +11,52 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "taskId, startAt, endAt are required" }, { status: 400 })
   }
 
-  const user = await requireUser()
-  await ensureUserProfile(user.id, user.email)
+  const supabaseUserId = await requireUser()
+  await ensureUserProfile(supabaseUserId, supabaseUserId)
 
+  const user = await prisma.user.findUnique({
+    where: { supabaseId: supabaseUserId }
+  })
+
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 })
+  }
+
+  const calculatedDuration = durationMinutes ?? Math.max(15, Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60000))
+
+  // Create time log
   await prisma.taskTimeLog.create({
     data: {
       taskId,
       startAt: new Date(startAt),
       endAt: new Date(endAt),
-      durationMinutes: durationMinutes ?? Math.max(15, Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60000)),
+      durationMinutes: calculatedDuration,
       estimateFeedback: feedback ?? null,
     },
   })
 
+  // Get task details for multiplier update
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+  })
+
+  if (task) {
+    // Update multiplier based on actual vs estimated time
+    await updateMultiplierForTask(
+      user.id,
+      taskId,
+      calculatedDuration,
+      task.estimatedMinutes
+    )
+  }
+
+  // Mark task as complete if requested
   if (markComplete) {
     await prisma.task.update({
       where: { id: taskId },
-      data: { status: "completed", completedAt: new Date(endAt) },
+      data: { status: "COMPLETED", completedAt: new Date(endAt) },
     })
   }
-
-  await updateMultiplierForTask(taskId)
 
   return NextResponse.json({ success: true })
 }

@@ -1,17 +1,20 @@
-import { getSupabaseServerClient } from '@/utils/supabase/server';
-import { redirect } from 'next/navigation';
+import { getSupabaseServerClient } from "@/utils/supabase/server"
 
 export async function requireUser() {
-  const supabase = await getSupabaseServerClient();
+  const supabase = getSupabaseServerClient()
 
   const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession()
 
-  if (error || !user) {
-    redirect('/auth');
+  if (!session) {
+    throw new Error("Unauthorized: No active session")
   }
 
-  return user;
+  const user = session.user
+
+  return {
+    id: user.id,
+    email: user.email ?? "",
+  }
 }
