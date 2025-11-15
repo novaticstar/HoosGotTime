@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { useCallback, useMemo, useState } from "react"
 import { format, formatDistanceToNowStrict, isSameDay, startOfToday } from "date-fns"
-import { AlertTriangle, GraduationCap } from "lucide-react"
+import { AlertTriangle } from "lucide-react"
 
 import { AssistantActionTrigger, AssistantIntent, AssistantPanel } from "@/components/assistant/AssistantPanel"
 import { DayView, ViewMode } from "@/components/schedule/DayView"
@@ -18,13 +18,6 @@ import {
   ScheduleBlockType,
 } from "@/lib/schedule-data"
 import { cn } from "@/lib/utils"
-
-const navLinks = [
-  { href: "/app/tasks", label: "Tasks" },
-  { href: "/app/schedule", label: "Schedule" },
-  { href: "/app/study", label: "Study" },
-  { href: "/app/settings", label: "Settings" },
-]
 
 const courses = availableCourses
 
@@ -138,29 +131,7 @@ export default function SchedulePage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50">
-      <header className="border-b bg-white">
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-2 text-lg font-semibold">
-            <GraduationCap className="h-5 w-5 text-brand-600" /> HoosGotTime
-          </div>
-          <nav className="flex flex-wrap gap-4 text-sm font-medium">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "transition hover:text-brand-600",
-                  link.href === "/app/schedule" ? "text-brand-600" : "text-muted-foreground"
-                )}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-      </header>
-
+    <div className="flex flex-col">
       <div className="mx-auto mt-4 w-full max-w-6xl px-4 md:hidden">
         <div className="flex items-center gap-1 rounded-full border bg-white px-1 py-1 text-xs font-semibold shadow-sm">
           {(
