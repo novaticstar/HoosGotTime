@@ -92,6 +92,17 @@ model User {
 }
 
 model UserSettings {
+  id                        String  @id @default(uuid())
+  userId                    String  @unique
+  user                      User    @relation(fields: [userId], references: [id])
+  wakeTime                  String
+  sleepTime                 String
+  buildingWalkBufferMinutes Int
+  commuteBufferMinutes      Int
+  maxStudyMinutesPerDay     Int
+  maxStudyBlockMinutes      Int
+  timeZone                  String  @default("America/New_York")
+  onboardingComplete        Boolean @default(false)
   id            Int     @id @default(autoincrement())
   userId        Int     @unique
   user          User    @relation(fields: [userId], references: [id])
