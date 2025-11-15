@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { anthropic } from "@/lib/claude"
-import { naturalLanguageTaskPrompt } from "@/lib/ai/prompts"
+import { anthropic, CLAUDE_MODELS } from "@/lib/claude"
+import { buildTaskParserPrompt } from "@/lib/ai/prompts"
 import { requireUser } from "@/lib/auth"
 import { ensureUserProfile } from "@/lib/user"
 import { prisma } from "@/lib/prisma"
@@ -12,6 +12,8 @@ type ParsedTask = {
   due_date?: string
   estimated_minutes?: number
   type?: TaskTypeValue
+  priority?: number
+  notes?: string
 }
 
 export async function POST(req: NextRequest) {
@@ -22,10 +24,10 @@ export async function POST(req: NextRequest) {
   }
 
   const fallback = defaultDueDate ?? new Date().toISOString().slice(0, 10)
-  const prompt = naturalLanguageTaskPrompt({ text, fallbackDueDate: fallback })
+  const prompt = buildTaskParserPrompt(text)
 
   const msg = await anthropic.messages.create({
-    model: "claude-3-5-sonnet-20241022",
+    model: CLAUDE_MODELS.SONNET,
     max_tokens: 1024,
     temperature: 0.4,
     messages: [{ role: "user", content: prompt }],
@@ -36,8 +38,16 @@ export async function POST(req: NextRequest) {
     const parsedTasks = JSON.parse(raw) as ParsedTask[]
 
     if (save) {
-      const user = await requireUser()
-      await ensureUserProfile(user.id, user.email)
+      const supabaseUserId = await requireUser()
+      await ensureUserProfile(supabaseUserId, supabaseUserId)
+
+      const user = await prisma.user.findUnique({
+        where: { supabaseId: supabaseUserId }
+      })
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 })
+      }
 
       const created = await Promise.all(
         parsedTasks.map((task) =>
@@ -48,7 +58,9 @@ export async function POST(req: NextRequest) {
               type: task.type ?? "other",
               dueAt: new Date(task.due_date ?? fallback),
               estimatedMinutes: task.estimated_minutes ?? 90,
-              status: "pending",
+              priority: task.priority ?? 5,
+              notes: task.notes,
+              status: "PENDING",
               createdFrom: "nl_input",
             },
           })
