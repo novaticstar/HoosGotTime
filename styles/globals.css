@@ -1,20 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 :root {
-  --bg: #ffffff;
-  --fg: #111827;
-  --muted: #6b7280;
+  --background: 0 0% 100%;
+  --foreground: 224 71.4% 4.1%;
+  --muted: 220 14.3% 95.9%;
+  --muted-foreground: 220 8.9% 46.1%;
+  --accent: 220 14.3% 95.9%;
+  --accent-foreground: 220 8.9% 46.1%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 221.2 83.2% 53.3%;
+  --radius: 0.75rem;
 }
 
-html, body {
-  padding: 0;
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
-  background: var(--bg);
-  color: var(--fg);
+.dark {
+  --background: 224 71.4% 4.1%;
+  --foreground: 210 20% 98%;
+  --muted: 215 27.9% 16.9%;
+  --muted-foreground: 217.9 10.6% 64.9%;
+  --accent: 215 27.9% 16.9%;
+  --accent-foreground: 210 20% 98%;
+  --border: 215 27.9% 16.9%;
+  --input: 215 27.9% 16.9%;
+  --ring: 216 12.2% 83.9%;
 }
 
-* {
-  box-sizing: border-box;
+body {
+  @apply bg-white text-slate-900 antialiased;
 }
-
-h1, h2, h3 { margin: 0 0 0.5rem 0 }
-p { margin: 0 0 1rem 0 }

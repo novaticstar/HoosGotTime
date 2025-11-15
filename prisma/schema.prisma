@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum TaskType {
+  homework
+  exam
+  project
+  reading
+  other
+  life
+}
+
+enum TaskStatus {
+  pending
+  completed
+}
+
+enum StudyMaterialSource {
+  upload
+  link
+  text
+}
+
+enum StudyContentType {
+  study_plan
+  flashcards
+  quiz
+}
+
+enum EstimateFeedback {
+  up
+  down
+  neutral
+}
+
+model User {
+  id          String            @id @default(uuid())
+  email       String            @unique
+  name        String?
+  timeZone    String            @default("America/New_York")
+  settings    UserSettings?
+  courses     Course[]
+  tasks       Task[]
+  schedules   ScheduleBlock[]
+  meals       MealPreference[]
+  multipliers UserMultiplier[]
+  materials   StudyMaterial[]
+}
+
+model UserSettings {
+  id                        String  @id @default(uuid())
+  userId                    String  @unique
+  user                      User    @relation(fields: [userId], references: [id])
+  wakeTime                  String
+  sleepTime                 String
+  buildingWalkBufferMinutes Int
+  commuteBufferMinutes      Int
+  maxStudyMinutesPerDay     Int
+  maxStudyBlockMinutes      Int
+}
+
+model Course {
+  id         String         @id @default(uuid())
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  name       String
+  code       String
+  difficulty Difficulty
+  meetings   ClassMeeting[]
+  tasks      Task[]
+}
+
+model ClassMeeting {
+  id        String @id @default(uuid())
+  courseId  String
+  course    Course @relation(fields: [courseId], references: [id])
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  building  String
+}
+
+model Task {
+  id               String         @id @default(uuid())
+  userId           String
+  user             User           @relation(fields: [userId], references: [id])
+  courseId         String?
+  course           Course?        @relation(fields: [courseId], references: [id])
+  title            String
+  description      String?
+  type             TaskType
+  dueAt            DateTime
+  estimatedMinutes Int
+  status           TaskStatus     @default(pending)
+  createdFrom      String
+  timeLogs         TaskTimeLog[]
+  studyMaterials   StudyMaterial[]
+  studyContent     StudyContent[]
+  scheduleBlocks   ScheduleBlock[] @relation("TaskBlocks")
+}
+
+model TaskTimeLog {
+  id               String            @id @default(uuid())
+  taskId           String
+  task             Task              @relation(fields: [taskId], references: [id])
+  startAt          DateTime
+  endAt            DateTime
+  durationMinutes  Int
+  estimateFeedback EstimateFeedback?
+}
+
+model MealPreference {
+  id                 String @id @default(uuid())
+  userId             String
+  user               User   @relation(fields: [userId], references: [id])
+  mealType           String
+  earliestTime       String
+  latestTime         String
+  typicalDurationMin Int
+  importance         Int
+}
+
+model ScheduleBlock {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  date       DateTime
+  startAt    DateTime
+  endAt      DateTime
+  type       String
+  label      String?
+  taskId     String?
+  task       Task?    @relation("TaskBlocks", fields: [taskId], references: [id])
+  courseId   String?
+  confidence Float?
+}
+
+model StudyMaterial {
+  id          String                @id @default(uuid())
+  userId      String
+  user        User                  @relation(fields: [userId], references: [id])
+  taskId      String
+  task        Task                  @relation(fields: [taskId], references: [id])
+  title       String
+  sourceType  StudyMaterialSource
+  url         String?
+  contentText String?
+}
+
+model StudyContent {
+  id          String            @id @default(uuid())
+  taskId      String
+  task        Task              @relation(fields: [taskId], references: [id])
+  type        StudyContentType
+  contentJson String
+  model       String
+  createdAt   DateTime          @default(now())
+}
+
+model UserMultiplier {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  courseId   String?
+  taskType   TaskType?
+  multiplier Float    @default(1.0)
+  updatedAt  DateTime @default(now())
+}
