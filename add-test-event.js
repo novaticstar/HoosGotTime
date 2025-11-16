@@ -10,8 +10,8 @@ const startTime = eventTime.toISOString().slice(0, 16).replace('T', ' ');
 const endTime = new Date(eventTime.getTime() + 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ');
 
 const result = db.prepare(`
-  INSERT INTO events (userId, title, description, startTime, endTime, location)
-  VALUES (1, 'Test SMS Notification', 'Testing walking reminder', ?, ?, 'Rice Hall')
+  INSERT INTO events (user_id, title, description, start_time, end_time)
+  VALUES (1, 'Test SMS Notification', 'Testing walking reminder', ?, ?)
 `).run(startTime, endTime);
 
 console.log('✅ Test event created!');

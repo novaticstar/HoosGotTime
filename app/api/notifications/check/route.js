@@ -67,15 +67,15 @@ export async function POST(request) {
     for (const user of users) {
       // Get upcoming events for this user
       const events = db.prepare(`
-        SELECT id, title, startTime, location
+        SELECT id, title, start_time, description
         FROM events 
-        WHERE userId = ? 
-        AND datetime(startTime) > datetime('now')
-        AND datetime(startTime) <= datetime('now', '+1 day')
+        WHERE user_id = ? 
+        AND datetime(start_time) > datetime('now')
+        AND datetime(start_time) <= datetime('now', '+1 day')
       `).all(user.id)
 
       for (const event of events) {
-        const eventStart = new Date(event.startTime)
+        const eventStart = new Date(event.start_time)
         const notifyTime = new Date(eventStart.getTime() - user.walkingTime * 60 * 1000)
         
         // Check if it's time to send notification (within 1 minute window)
@@ -91,7 +91,7 @@ export async function POST(request) {
           `).get(user.id, event.id)
 
           if (!alreadySent) {
-            const location = event.location || 'your next event'
+            const location = event.description || 'your next event'
             const message = `⏰ Time to head to ${location}! Your event "${event.title}" starts in ${user.walkingTime} minutes at ${eventStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}.`
             
             const result = await sendSMS(user.phoneNumber, message)
@@ -155,16 +155,16 @@ export async function GET(request) {
 
       for (const user of users) {
         const events = db.prepare(`
-          SELECT id, title, startTime, location
+          SELECT id, title, start_time, description
           FROM events 
-          WHERE userId = ? 
-          AND datetime(startTime) > datetime('now')
-          AND datetime(startTime) <= datetime('now', '+1 day')
-          ORDER BY startTime
+          WHERE user_id = ? 
+          AND datetime(start_time) > datetime('now')
+          AND datetime(start_time) <= datetime('now', '+1 day')
+          ORDER BY start_time
         `).all(user.id)
 
         for (const event of events) {
-          const eventStart = new Date(event.startTime)
+          const eventStart = new Date(event.start_time)
           const notifyTime = new Date(eventStart.getTime() - user.walkingTime * 60 * 1000)
           const minutesUntilNotify = (notifyTime.getTime() - now.getTime()) / (1000 * 60)
           
@@ -175,7 +175,7 @@ export async function GET(request) {
             eventTime: eventStart.toISOString(),
             notifyTime: notifyTime.toISOString(),
             minutesUntilNotify: Math.round(minutesUntilNotify),
-            location: event.location
+            location: event.description
           })
         }
       }
