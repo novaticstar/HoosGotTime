@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import { format } from "date-fns"
 import { HelpCircle, MessageSquare, Send, Sparkles } from "lucide-react"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 
 import { cn } from "@/lib/utils"
 
@@ -182,7 +184,38 @@ export function AssistantPanel({ selectedDate, onRunAction, externalAction, cont
                 : "ml-auto bg-brand-600 text-white"
             )}
           >
-            <p>{message.content}</p>
+            <div className={cn(
+              "prose prose-sm max-w-none",
+              message.role === "user" ? "prose-invert" : ""
+            )}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                components={{
+                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                  ul: ({ children }) => <ul className="mb-2 ml-4 list-disc">{children}</ul>,
+                  ol: ({ children }) => <ol className="mb-2 ml-4 list-decimal">{children}</ol>,
+                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                  code: ({ inline, children, ...props }: any) =>
+                    inline ? (
+                      <code className="rounded bg-slate-100 px-1 py-0.5 text-xs font-mono text-slate-800" {...props}>
+                        {children}
+                      </code>
+                    ) : (
+                      <code className="block rounded bg-slate-100 p-2 text-xs font-mono text-slate-800 overflow-x-auto" {...props}>
+                        {children}
+                      </code>
+                    ),
+                  pre: ({ children }) => <pre className="mb-2 overflow-x-auto">{children}</pre>,
+                  strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                  em: ({ children }) => <em className="italic">{children}</em>,
+                  h1: ({ children }) => <h1 className="mb-2 text-lg font-bold">{children}</h1>,
+                  h2: ({ children }) => <h2 className="mb-2 text-base font-bold">{children}</h2>,
+                  h3: ({ children }) => <h3 className="mb-2 text-sm font-bold">{children}</h3>,
+                }}
+              >
+                {message.content}
+              </ReactMarkdown>
+            </div>
             <div className="mt-1 text-[10px] uppercase tracking-wide text-muted-foreground">
               {format(message.timestamp, "h:mm a")}
             </div>
