@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
     const parsedTasks = JSON.parse(raw) as ParsedTask[]
 
     if (save) {
-      const supabaseUserId = await requireUser()
-      await ensureUserProfile(supabaseUserId, supabaseUserId)
+      const { id: supabaseUserId, email } = await requireUser()
+      await ensureUserProfile(supabaseUserId, email)
 
       const user = await prisma.user.findUnique({
-        where: { supabaseId: supabaseUserId }
+        where: { id: supabaseUserId },
       })
 
       if (!user) {
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
               estimatedMinutes: task.estimated_minutes ?? 90,
               priority: task.priority ?? 5,
               notes: task.notes,
-              status: "PENDING",
+              status: "pending",
               createdFrom: "nl_input",
             },
           })

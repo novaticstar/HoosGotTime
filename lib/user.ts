@@ -29,9 +29,13 @@ const DEFAULT_MEALS: MealSeed[] = [
 export async function ensureUserProfile(userId: string, email?: string | null) {
   const user = await prisma.user.upsert({
     where: { id: userId },
-    update: email ? { email } : {},
+    update: {
+      supabaseId: userId,
+      ...(email ? { email } : {}),
+    },
     create: {
       id: userId,
+      supabaseId: userId,
       email: email ?? `${userId}@students.local`,
       name: email?.split("@")[0] ?? "Demo Student",
     },

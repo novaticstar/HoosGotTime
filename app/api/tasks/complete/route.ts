@@ -11,16 +11,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "taskId, startAt, endAt are required" }, { status: 400 })
   }
 
-  const supabaseUserId = await requireUser()
-  await ensureUserProfile(supabaseUserId, supabaseUserId)
-
-  const user = await prisma.user.findUnique({
-    where: { supabaseId: supabaseUserId }
-  })
-
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 })
-  }
+  const { id: supabaseUserId, email } = await requireUser()
+  await ensureUserProfile(supabaseUserId, email)
 
   const calculatedDuration = durationMinutes ?? Math.max(15, Math.round((new Date(endAt).getTime() - new Date(startAt).getTime()) / 60000))
 
@@ -42,19 +34,14 @@ export async function POST(req: NextRequest) {
 
   if (task) {
     // Update multiplier based on actual vs estimated time
-    await updateMultiplierForTask(
-      user.id,
-      taskId,
-      calculatedDuration,
-      task.estimatedMinutes
-    )
+    await updateMultiplierForTask(taskId)
   }
 
   // Mark task as complete if requested
   if (markComplete) {
     await prisma.task.update({
       where: { id: taskId },
-      data: { status: "COMPLETED", completedAt: new Date(endAt) },
+      data: { status: "completed", completedAt: new Date(endAt) },
     })
   }
 

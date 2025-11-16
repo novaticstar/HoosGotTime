@@ -56,106 +56,104 @@ enum EstimateFeedback {
 }
 
 enum MealType {
-  BREAKFAST
-  LUNCH
-  DINNER
-  SNACK
+  breakfast
+  lunch
+  dinner
+  snack
 }
 
 enum ScheduleBlockType {
-  CLASS
-  MEAL
-  STUDY
-  TRAVEL
-  SLEEP
-  EVENT
-  BREAK
-  WORK
-  EXERCISE
-  PERSONAL
+  class
+  meal
+  study
+  travel
+  sleep
+  event
+  snack
+  break
+  work
+  exercise
+  personal
 }
 
 model User {
-  id              Int                 @id @default(autoincrement())
-  supabaseId      String              @unique
-  email           String              @unique
-  name            String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  settings        UserSettings?
-  courses         Course[]
-  tasks           Task[]
-  scheduleBlocks  ScheduleBlock[]
-  mealPreferences MealPreference[]
-  multipliers     UserMultiplier[]
-  materials       StudyMaterial[]
+  id             String           @id
+  supabaseId     String           @unique
+  email          String           @unique
+  name           String?
+  timeZone       String?          @default("America/New_York")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  settings       UserSettings?
+  courses        Course[]
+  tasks          Task[]
+  scheduleBlocks ScheduleBlock[]
+  meals          MealPreference[]
+  multipliers    UserMultiplier[]
+  materials      StudyMaterial[]
+  studyContent   StudyContent[]
 }
 
 model UserSettings {
-  id                        String  @id @default(uuid())
-  userId                    String  @unique
-  user                      User    @relation(fields: [userId], references: [id])
+  id                        String   @id @default(uuid())
+  userId                    String   @unique
+  user                      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   wakeTime                  String
   sleepTime                 String
   buildingWalkBufferMinutes Int
   commuteBufferMinutes      Int
   maxStudyMinutesPerDay     Int
   maxStudyBlockMinutes      Int
-  timeZone                  String  @default("America/New_York")
-  onboardingComplete        Boolean @default(false)
-  id            Int     @id @default(autoincrement())
-  userId        Int     @unique
-  user          User    @relation(fields: [userId], references: [id])
-  wakeTime      String
-  sleepTime     String
-  travelBuffer  Int     @default(10)
-  breakBuffer   Int     @default(5)
-  maxStudyHours Int     @default(8)
-  timezone      String  @default("America/New_York")
+  timeZone                  String   @default("America/New_York")
+  onboardingComplete        Boolean  @default(false)
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
 }
 
 model Course {
-  id             Int              @id @default(autoincrement())
-  userId         Int
-  user           User             @relation(fields: [userId], references: [id])
+  id             String           @id @default(uuid())
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name           String
   code           String
-  difficulty     Difficulty
-  classMeetings  ClassMeeting[]
-  tasks          Task[]
-  scheduleBlocks ScheduleBlock[]
+  difficulty     Difficulty       @default(medium)
   createdAt      DateTime         @default(now())
   updatedAt      DateTime         @updatedAt
+  meetings       ClassMeeting[]
+  tasks          Task[]
+  scheduleBlocks ScheduleBlock[]
+  UserMultiplier UserMultiplier[]
 }
 
 model ClassMeeting {
-  id         Int    @id @default(autoincrement())
-  courseId   Int
-  course     Course @relation(fields: [courseId], references: [id])
-  daysOfWeek String // e.g., "MWF" or "TR"
-  startTime  String
-  endTime    String
-  building   String
+  id        String  @id @default(uuid())
+  courseId  String
+  course    Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  dayOfWeek Int
+  startTime String
+  endTime   String
+  building  String?
 }
 
 model Task {
-  id               Int                 @id @default(autoincrement())
-  userId           Int
-  user             User                @relation(fields: [userId], references: [id])
-  courseId         Int?
-  course           Course?             @relation(fields: [courseId], references: [id])
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String?
+  course           Course?         @relation(fields: [courseId], references: [id])
   title            String
   description      String?
   type             TaskType
   dueAt            DateTime
-  estimatedMinutes Int                 @default(60)
-  priority         Int?                @default(5)
-  status           TaskStatus          @default(pending)
-  createdFrom      TaskCreatedFrom     @default(manual)
+  estimatedMinutes Int             @default(60)
+  priority         Int?            @default(5)
+  status           TaskStatus      @default(pending)
+  createdFrom      TaskCreatedFrom @default(manual)
   completedAt      DateTime?
   notes            String?
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  atRisk           Boolean         @default(false)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
   timeLogs         TaskTimeLog[]
   studyMaterials   StudyMaterial[]
   studyContent     StudyContent[]
@@ -163,73 +161,77 @@ model Task {
 }
 
 model TaskTimeLog {
-  id               Int                  @id @default(autoincrement())
-  taskId           Int
-  task             Task                 @relation(fields: [taskId], references: [id])
+  id               String            @id @default(uuid())
+  taskId           String
+  task             Task              @relation(fields: [taskId], references: [id], onDelete: Cascade)
   startAt          DateTime
   endAt            DateTime
   durationMinutes  Int
   estimateFeedback EstimateFeedback?
-  createdAt        DateTime             @default(now())
+  createdAt        DateTime          @default(now())
 }
 
 model MealPreference {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  user            User     @relation(fields: [userId], references: [id])
-  type            MealType
-  startTime       String
-  endTime         String
-  durationMinutes Int
-  importance      Int      @default(5)
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealType           MealType
+  earliestTime       String
+  latestTime         String
+  typicalDurationMin Int
+  importance         Int      @default(1)
+  createdAt          DateTime @default(now())
 }
 
 model ScheduleBlock {
-  id         Int               @id @default(autoincrement())
-  userId     Int
-  user       User              @relation(fields: [userId], references: [id])
+  id         String            @id @default(uuid())
+  userId     String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   date       DateTime
   startAt    DateTime
   endAt      DateTime
   type       ScheduleBlockType
   label      String
-  taskId     Int?
+  taskId     String?
   task       Task?             @relation(fields: [taskId], references: [id])
-  courseId   Int?
+  courseId   String?
   course     Course?           @relation(fields: [courseId], references: [id])
   confidence Float             @default(1.0)
-  meta       Json              @default("{}")
+  meta       Json?
   createdAt  DateTime          @default(now())
 }
 
 model StudyMaterial {
-  id          Int                  @id @default(autoincrement())
-  userId      Int
-  user        User                 @relation(fields: [userId], references: [id])
-  taskId      Int
-  task        Task                 @relation(fields: [taskId], references: [id])
+  id          String              @id @default(uuid())
+  userId      String
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId      String
+  task        Task                @relation(fields: [taskId], references: [id], onDelete: Cascade)
   title       String
   sourceType  StudyMaterialSource
   url         String?
   contentText String?
-  createdAt   DateTime             @default(now())
+  createdAt   DateTime            @default(now())
 }
 
 model StudyContent {
-  id          Int              @id @default(autoincrement())
-  taskId      Int
-  task        Task             @relation(fields: [taskId], references: [id])
+  id          String           @id @default(uuid())
+  taskId      String
+  task        Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
   type        StudyContentType
   contentJson String
   model       String
   createdAt   DateTime         @default(now())
+  User        User?            @relation(fields: [userId], references: [id])
+  userId      String?
 }
 
 model UserMultiplier {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  user        User      @relation(fields: [userId], references: [id])
-  courseId    Int?
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String?
+  course      Course?   @relation(fields: [courseId], references: [id])
   taskType    TaskType?
   multiplier  Float     @default(1.0)
   sampleCount Int       @default(1)
