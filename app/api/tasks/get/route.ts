@@ -7,14 +7,14 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const atRiskOnly = searchParams.get('atRiskOnly') === 'true'
 
-  const supabaseUserId = await requireUser()
-  await ensureUserProfile(supabaseUserId, supabaseUserId)
+  const user = await requireUser()
+  await ensureUserProfile(user.id, user.email)
 
   if (atRiskOnly) {
-    const tasks = await getAtRiskTasks(supabaseUserId)
+    const tasks = await getAtRiskTasks(user.id)
     return NextResponse.json({ tasks })
   } else {
-    const tasks = await getPendingTasks(supabaseUserId)
+    const tasks = await getPendingTasks(user.id)
     return NextResponse.json({ tasks })
   }
 }

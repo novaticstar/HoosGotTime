@@ -172,16 +172,46 @@ export function chatPrompt({
   conversationHistory?: Array<{ role: string; content: string }>
   userContext?: {
     currentDate?: string
+    currentTime?: string
     upcomingTasks?: any[]
     todaySchedule?: any[]
+    weekSchedule?: any[]
+    relatedTasks?: any[]
   }
 }) {
-  const context = userContext
-    ? `
-Current context:
-- Today's date: ${userContext.currentDate || new Date().toISOString().slice(0, 10)}
-${userContext.todaySchedule && userContext.todaySchedule.length > 0 ? `- Today's schedule: ${userContext.todaySchedule.map((b) => `${b.type} (${b.label || "Untitled"})`).join(", ")}` : ""}
-${userContext.upcomingTasks && userContext.upcomingTasks.length > 0 ? `- Upcoming tasks: ${userContext.upcomingTasks.map((t) => `${t.title} (due ${t.dueAt})`).join(", ")}` : ""}
+  let scheduleInfo = ""
+  let taskInfo = ""
+
+  if (userContext?.todaySchedule && userContext.todaySchedule.length > 0) {
+    scheduleInfo = `\n\nToday's Schedule (${userContext.currentDate || "today"}):\n${userContext.todaySchedule.map((b, i) => 
+      `${i + 1}. ${b.label || b.type} ${b.course ? `(${b.course})` : ""}\n   Time: ${new Date(b.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })} - ${new Date(b.end).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}\n   Type: ${b.type}`
+    ).join("\n")}`
+  }
+
+  if (userContext?.weekSchedule && userContext.weekSchedule.length > 0) {
+    const groupedByDay: Record<string, any[]> = {}
+    userContext.weekSchedule.forEach(block => {
+      const day = new Date(block.start).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
+      if (!groupedByDay[day]) groupedByDay[day] = []
+      groupedByDay[day].push(block)
+    })
+
+    scheduleInfo = `\n\nWeek Schedule:\n${Object.entries(groupedByDay).map(([day, blocks]) =>
+      `${day}:\n${blocks.map(b => 
+        `  - ${b.label || b.type} ${b.course ? `(${b.course})` : ""} at ${new Date(b.start).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+      ).join("\n")}`
+    ).join("\n\n")}`
+  }
+
+  if (userContext?.upcomingTasks && userContext.upcomingTasks.length > 0) {
+    taskInfo = `\n\nUpcoming Tasks:\n${userContext.upcomingTasks.map((t, i) =>
+      `${i + 1}. ${t.title}\n   Due: ${new Date(t.dueAt).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}\n   Status: ${t.status || 'pending'}${t.estimatedMinutes ? `\n   Estimated: ${t.estimatedMinutes} minutes` : ""}`
+    ).join("\n")}`
+  }
+
+  const context = scheduleInfo || taskInfo 
+    ? `\n\nCurrent User Context:
+- Current Date & Time: ${userContext?.currentDate || new Date().toISOString().slice(0, 10)}${userContext?.currentTime ? ` at ${userContext.currentTime}` : ""}${scheduleInfo}${taskInfo}
 `
     : ""
 
@@ -193,14 +223,18 @@ Your capabilities include:
 - Answering questions about tasks, deadlines, and workload
 - Offering encouragement and motivation
 - Suggesting ways to optimize their schedule
+- Creating and managing tasks based on natural language input
 
-${context}
+IMPORTANT: You have access to the user's schedule and tasks data through the context provided. When asked about their schedule, tasks, or commitments, USE THE CONTEXT DATA provided below. Do NOT say you don't have access to their data.${context}
 
-Keep your responses:
-- Friendly and encouraging
-- Concise (2-4 sentences unless more detail is explicitly requested)
-- Actionable and practical
-- Focused on helping the student succeed
+When responding:
+- Always refer to the actual data from the context when available
+- Be specific about times, dates, and task details from the context
+- If asked about the schedule/tasks and context is provided, give detailed information
+- Be friendly and encouraging
+- Keep responses concise (2-4 sentences) unless more detail is explicitly requested
+- Focus on being actionable and practical
+- If context is empty or missing, then you can ask for more information
 
 User message: ${message}`
 }

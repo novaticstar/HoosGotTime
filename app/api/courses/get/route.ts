@@ -4,9 +4,9 @@ import { requireUser } from "@/lib/auth"
 import { ensureUserProfile } from "@/lib/user"
 
 export async function GET(req: NextRequest) {
-  const supabaseUserId = await requireUser()
-  await ensureUserProfile(supabaseUserId, supabaseUserId)
+  const user = await requireUser()
+  await ensureUserProfile(user.id, user.email)
 
-  const courses = await getUserCoursesWithMeetings(supabaseUserId)
+  const courses = await getUserCoursesWithMeetings(user.id)
   return NextResponse.json({ courses })
 }

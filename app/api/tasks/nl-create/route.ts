@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { anthropic, CLAUDE_MODELS } from "@/lib/claude"
-import { buildTaskParserPrompt } from "@/lib/ai/prompts"
+import { anthropic } from "@/lib/claude"
+import { naturalLanguageTaskPrompt } from "@/lib/ai/prompts"
 import { requireUser } from "@/lib/auth"
 import { ensureUserProfile } from "@/lib/user"
 import { prisma } from "@/lib/prisma"
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
   }
 
   const fallback = defaultDueDate ?? new Date().toISOString().slice(0, 10)
-  const prompt = buildTaskParserPrompt(text)
+  const prompt = naturalLanguageTaskPrompt({ text, fallbackDueDate: fallback })
 
   const msg = await anthropic.messages.create({
     model: "claude-sonnet-4-5-20250929",
@@ -58,8 +58,7 @@ export async function POST(req: NextRequest) {
               type: task.type ?? "other",
               dueAt: new Date(task.due_date ?? fallback),
               estimatedMinutes: task.estimated_minutes ?? 90,
-              priority: task.priority ?? 5,
-              notes: task.notes,
+              description: task.notes || "",
               status: "pending",
               createdFrom: "nl_input",
             },

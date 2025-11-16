@@ -1,9 +1,9 @@
 import { startOfDay, endOfDay } from "date-fns"
 import { prisma } from "@/lib/prisma"
 
-export async function getScheduleForDate(userId: string, date: string) {
-  const start = startOfDay(new Date(date))
-  const end = endOfDay(new Date(date))
+export async function getScheduleForDate(userId: string, date: Date) {
+  const start = startOfDay(date)
+  const end = endOfDay(date)
 
   const blocks = await prisma.scheduleBlock.findMany({
     where: {
@@ -24,9 +24,32 @@ export async function getScheduleForDate(userId: string, date: string) {
   return blocks
 }
 
-export async function getEatingStats(userId: string, date: string) {
-  const start = startOfDay(new Date(date))
-  const end = endOfDay(new Date(date))
+export async function getScheduleForDateRange(userId: string, startDate: Date, endDate: Date) {
+  const start = startOfDay(startDate)
+  const end = endOfDay(endDate)
+
+  const blocks = await prisma.scheduleBlock.findMany({
+    where: {
+      userId,
+      startAt: {
+        gte: start,
+        lte: end,
+      },
+    },
+    orderBy: {
+      startAt: "asc",
+    },
+    include: {
+      task: true,
+    },
+  })
+
+  return blocks
+}
+
+export async function getEatingStats(userId: string, date: Date) {
+  const start = startOfDay(date)
+  const end = endOfDay(date)
 
   const mealBlocks = await prisma.scheduleBlock.findMany({
     where: {
@@ -55,8 +78,27 @@ export async function getEatingStats(userId: string, date: string) {
   }
 }
 
-export async function getAtRiskTasks(userId: string, date: string) {
-  const targetDate = new Date(date)
+export async function getPendingTasks(userId: string) {
+  const tasks = await prisma.task.findMany({
+    where: {
+      userId,
+      status: {
+        in: ["pending", "in_progress"],
+      },
+    },
+    orderBy: {
+      dueAt: "asc",
+    },
+    include: {
+      course: true,
+    },
+  })
+
+  return tasks
+}
+
+export async function getAtRiskTasks(userId: string) {
+  const now = new Date()
 
   const tasks = await prisma.task.findMany({
     where: {
@@ -65,7 +107,7 @@ export async function getAtRiskTasks(userId: string, date: string) {
         in: ["pending", "in_progress"],
       },
       dueAt: {
-        gte: targetDate,
+        gte: now,
       },
     },
     orderBy: {
@@ -78,10 +120,38 @@ export async function getAtRiskTasks(userId: string, date: string) {
   })
 
   // Mark tasks as at risk if they're due soon and have high estimated time
-  return tasks.filter((task) => {
+  const atRiskTasks = tasks.filter((task) => {
     const daysUntilDue =
-      (task.dueAt.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24)
+      (task.dueAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     const needsMoreThan2Hours = task.estimatedMinutes > 120
-    return daysUntilDue < 3 && needsMoreThan2Hours
+    return daysUntilDue < 4 && needsMoreThan2Hours
   })
+
+  // Update atRisk flag in database
+  await Promise.all(
+    atRiskTasks.map((task) =>
+      prisma.task.update({
+        where: { id: task.id },
+        data: { atRisk: true },
+      })
+    )
+  )
+
+  return atRiskTasks
+}
+
+export async function getUserCoursesWithMeetings(userId: string) {
+  const courses = await prisma.course.findMany({
+    where: {
+      userId,
+    },
+    include: {
+      meetings: true,
+    },
+    orderBy: {
+      code: "asc",
+    },
+  })
+
+  return courses
 }

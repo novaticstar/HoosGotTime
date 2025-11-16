@@ -39,10 +39,10 @@ export function TaskConfirmation({ parsedData, onComplete }: TaskConfirmationPro
 
   async function fetchCourses() {
     try {
-      const response = await fetch("/api/courses");
+      const response = await fetch("/api/courses/get");
       if (response.ok) {
         const data = await response.json();
-        setCourses(data);
+        setCourses(data.courses || []);
 
         // Try to auto-match course based on parsed data
         if (parsedData.courseCode || parsedData.courseName) {

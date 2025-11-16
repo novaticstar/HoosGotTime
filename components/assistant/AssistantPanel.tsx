@@ -184,10 +184,15 @@ export function AssistantPanel({ selectedDate, onRunAction, externalAction, cont
                 : "ml-auto bg-brand-600 text-white"
             )}
           >
-            <div className={cn(
-              "prose prose-sm max-w-none",
-              message.role === "user" ? "prose-invert" : ""
-            )}>
+            <div 
+              className={cn(
+                "prose prose-sm max-w-none overflow-y-auto",
+                message.role === "user" ? "prose-invert max-h-[400px]" : "max-h-[600px]"
+              )}
+              style={{
+                maxHeight: message.content.length > 1000 ? "400px" : "none"
+              }}
+            >
               <ReactMarkdown
                 remarkPlugins={[remarkGfm]}
                 components={{

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 type Props = {
@@ -8,6 +9,7 @@ type Props = {
 }
 
 export function NLTaskWidget({ defaultDueDate }: Props) {
+  const router = useRouter()
   const [text, setText] = useState("")
   const [save, setSave] = useState(true)
   const [result, setResult] = useState<string>("")
@@ -25,6 +27,16 @@ export function NLTaskWidget({ defaultDueDate }: Props) {
       })
       const data = await res.json()
       setResult(JSON.stringify(data, null, 2))
+      
+      // Refresh the page if tasks were saved
+      if (save && data.saved && data.saved.length > 0) {
+        setText("")
+        setResult("Tasks created successfully!")
+        setTimeout(() => {
+          router.refresh()
+          setResult("")
+        }, 1500)
+      }
     } catch (err) {
       setResult(String(err))
     } finally {

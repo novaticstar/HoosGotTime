@@ -15,12 +15,12 @@ export async function POST(req: NextRequest) {
       const formData = await req.formData();
       const file = formData.get("file") as File;
 
-  const msg = await anthropic.messages.create({
-    model: "claude-sonnet-4-5-20250929",
-    max_tokens: 1024,
-    temperature: 0,
-    messages: [{ role: "user", content: prompt }],
-  })
+      if (!file) {
+        return NextResponse.json(
+          { error: "No file provided" },
+          { status: 400 }
+        );
+      }
 
       // Convert file to buffer
       const arrayBuffer = await file.arrayBuffer();
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const prompt = syllabusExtractionPrompt(syllabusText);
 
     const msg = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-20241022",
+      model: "claude-sonnet-4-5-20250929",
       max_tokens: 4096,
       temperature: 0,
       messages: [{ role: "user", content: prompt }],
@@ -54,9 +54,9 @@ export async function POST(req: NextRequest) {
     const raw = msg.content[0]?.type === "text" ? msg.content[0].text : "";
 
     // Parse the JSON response
-    let parsedData;
+    let parsedTasks;
     try {
-      parsedData = JSON.parse(raw);
+      parsedTasks = JSON.parse(raw);
     } catch (parseError) {
       console.error("Syllabus parse JSON error", parseError, raw);
       return NextResponse.json(
@@ -66,14 +66,27 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate the response structure
-    if (!parsedData.tasks || !Array.isArray(parsedData.tasks)) {
+    if (!Array.isArray(parsedTasks)) {
       return NextResponse.json(
         { error: "Invalid response format from AI" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(parsedData);
+    // Transform to expected format
+    const tasks = parsedTasks.map((task: any) => ({
+      title: task.title,
+      description: task.description || "",
+      type: task.type || "other",
+      dueDate: task.due_date || null,
+      estimatedMinutes: task.estimated_minutes || 90,
+    }));
+
+    return NextResponse.json({ 
+      tasks,
+      courseName: null,
+      courseCode: null 
+    });
   } catch (error) {
     console.error("Error parsing syllabus:", error);
     return NextResponse.json(

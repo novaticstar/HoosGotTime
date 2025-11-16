@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { ensureUserProfile } from "@/lib/user";
 import { prisma } from "@/lib/prisma";
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   try {
     // Authenticate user
     const supabaseUser = await requireUser();
-    const user = await ensureUserProfile(supabaseUser.id, supabaseUser.email);
+    await ensureUserProfile(supabaseUser.id, supabaseUser.email);
 
     // Parse request body
     const body = await req.json();
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
           const course = await prisma.course.findFirst({
             where: {
               id: task.courseId,
-              userId: user.id,
+              userId: supabaseUser.id,
             },
           });
 
@@ -70,18 +71,23 @@ export async function POST(req: NextRequest) {
           }
         }
 
+        // Determine due date - default to end of today if not provided
+        const dueAt = task.dueDate 
+          ? new Date(task.dueDate) 
+          : new Date(new Date().setHours(23, 59, 59, 999));
+
         // Create the task
         return prisma.task.create({
           data: {
-            userId: user.id,
+            userId: supabaseUser.id,
             title: task.title,
             description: task.description || "",
             type: task.type,
-            dueAt: task.dueDate ? new Date(task.dueDate) : null,
+            dueAt,
             estimatedMinutes: task.estimatedMinutes,
             courseId: task.courseId || null,
             createdFrom: "syllabus",
-            status: "todo",
+            status: "pending",
             atRisk: false,
           },
           include: {
@@ -96,6 +102,10 @@ export async function POST(req: NextRequest) {
         });
       })
     );
+
+    // Revalidate relevant pages
+    revalidatePath("/app/tasks");
+    revalidatePath("/app/schedule");
 
     return NextResponse.json({
       success: true,

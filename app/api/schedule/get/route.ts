@@ -9,24 +9,24 @@ export async function GET(req: NextRequest) {
   const startDate = searchParams.get('startDate')
   const endDate = searchParams.get('endDate')
 
-  const supabaseUserId = await requireUser()
-  await ensureUserProfile(supabaseUserId, supabaseUserId)
+  const user = await requireUser()
+  await ensureUserProfile(user.id, user.email)
 
   if (startDate && endDate) {
     // Get schedule for date range
     const blocks = await getScheduleForDateRange(
-      supabaseUserId,
+      user.id,
       new Date(startDate),
       new Date(endDate)
     )
     return NextResponse.json({ blocks })
   } else if (date) {
     // Get schedule for single date
-    const blocks = await getScheduleForDate(supabaseUserId, new Date(date))
+    const blocks = await getScheduleForDate(user.id, new Date(date))
     return NextResponse.json({ blocks })
   } else {
     // Get schedule for today
-    const blocks = await getScheduleForDate(supabaseUserId, new Date())
+    const blocks = await getScheduleForDate(user.id, new Date())
     return NextResponse.json({ blocks })
   }
 }
