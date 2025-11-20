@@ -3,10 +3,15 @@ import db from '../../../lib/db'
 
 export async function POST(request) {
   try {
-    const { message, userId } = await request.json()
+    const { message, userId, images } = await request.json()
 
-    if (!message || !userId) {
-      return NextResponse.json({ error: 'Message and userId required' }, { status: 400 })
+    if (!userId) {
+      return NextResponse.json({ error: 'userId required' }, { status: 400 })
+    }
+    
+    // Allow empty message if images are provided
+    if (!message && (!images || images.length === 0)) {
+      return NextResponse.json({ error: 'Message or images required' }, { status: 400 })
     }
 
     // Check if API key is configured
@@ -32,7 +37,7 @@ ${eventsContext}
 
 CRITICAL: You must respond with ONLY a valid JSON object, nothing else. No extra text before or after.
 
-When users ask you to schedule something, respond with this EXACT format:
+When users ask you to schedule something OR when you receive an IMAGE with schedule information, respond with this EXACT format:
 {
   "response": "your conversational response here",
   "events": [
@@ -45,12 +50,27 @@ When users ask you to schedule something, respond with this EXACT format:
   ]
 }
 
+When users ask you to clear their schedule or delete all events, respond with:
+{
+  "response": "I've cleared your schedule",
+  "clearSchedule": true
+}
+
+IMPORTANT FOR IMAGES:
+- If you receive an image (screenshot, photo of calendar, syllabus, etc.), ANALYZE IT CAREFULLY
+- Extract ALL events, deadlines, assignments, meetings, or tasks you can see
+- For each item found, create an event with title, description, start time, and end time
+- If only a date is visible (no time), use reasonable defaults like 9:00 AM for start
+- If duration is unknown, assume 1-2 hours
+- ALWAYS include the "events" array with the extracted items - do NOT just say you added them without actually creating the events
+
 IMPORTANT: 
 - Respond with ONLY the JSON object, no extra text
 - Use REAL dates in format "YYYY-MM-DD HH:MM" (e.g., "2025-11-16 14:00")
 - Calculate actual dates based on today's date
 - Use 24-hour time format (14:00, not 2:00 PM)
 - If creating multiple events (e.g., recurring), include them all in the events array
+- If user asks to clear/delete schedule, set "clearSchedule": true
 
 If you're just responding without creating events, use:
 {
@@ -75,6 +95,30 @@ Remember: ONLY return the JSON object, nothing else.`
     for (const model of models) {
       console.log(`Trying model: ${model}`)
       
+      // Build message content - support both text and images
+      const messageContent = []
+      
+      // Add images first if they exist
+      if (images && images.length > 0) {
+        console.log(`Adding ${images.length} images to Claude request`)
+        images.forEach(img => {
+          messageContent.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: img.media_type || 'image/jpeg',
+              data: img.data
+            }
+          })
+        })
+      }
+      
+      // Add text message
+      messageContent.push({
+        type: 'text',
+        text: message || 'Please analyze this image and extract any schedule information, events, deadlines, or tasks. Create calendar events for anything you find.'
+      })
+      
       const claudeResponse = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: {
@@ -89,7 +133,7 @@ Remember: ONLY return the JSON object, nothing else.`
           messages: [
             {
               role: 'user',
-              content: message
+              content: messageContent
             }
           ]
         })
@@ -138,24 +182,52 @@ Remember: ONLY return the JSON object, nothing else.`
       parsedResponse = { response: assistantMessage }
     }
 
+    // Handle clearSchedule action
+    if (parsedResponse.clearSchedule) {
+      console.log('Clearing schedule for user:', userId)
+      // Delete notifications first (foreign key constraint)
+      db.prepare('DELETE FROM notifications WHERE userId = ?').run(userId)
+      // Then delete all events
+      db.prepare('DELETE FROM events WHERE user_id = ?').run(userId)
+      console.log('Schedule cleared successfully')
+      
+      return NextResponse.json({
+        message: parsedResponse.response || 'Schedule cleared',
+        clearSchedule: true
+      })
+    }
+
     // If events are included, save them to database
     if (parsedResponse.events && Array.isArray(parsedResponse.events)) {
       console.log(`Saving ${parsedResponse.events.length} events to database`)
-      const insert = db.prepare(`
-        INSERT INTO events (user_id, title, description, start_time, end_time)
-        VALUES (?, ?, ?, ?, ?)
-      `)
-
+      
+      const eventsAdded = []
       for (const event of parsedResponse.events) {
-        console.log('Inserting event:', event)
-        insert.run(userId, event.title, event.description || '', event.start, event.end)
+        // Check if event already exists (same title and start time)
+        const existing = db.prepare(`
+          SELECT id FROM events 
+          WHERE user_id = ? AND title = ? AND start_time = ?
+        `).get(userId, event.title, event.start)
+        
+        if (!existing) {
+          console.log('Inserting new event:', event)
+          const insert = db.prepare(`
+            INSERT INTO events (user_id, title, description, start_time, end_time)
+            VALUES (?, ?, ?, ?, ?)
+          `)
+          insert.run(userId, event.title, event.description || '', event.start, event.end)
+          eventsAdded.push(event)
+        } else {
+          console.log('Event already exists, skipping:', event.title)
+        }
       }
-      console.log('Events saved successfully')
+      console.log(`Events saved: ${eventsAdded.length} new, ${parsedResponse.events.length - eventsAdded.length} duplicates skipped`)
     }
 
     return NextResponse.json({
       message: parsedResponse.response || parsedResponse.message || assistantMessage,
-      events: parsedResponse.events || []
+      events: parsedResponse.events || [],
+      clearSchedule: parsedResponse.clearSchedule || false
     })
 
   } catch (error) {

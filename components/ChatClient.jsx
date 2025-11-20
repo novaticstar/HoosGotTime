@@ -74,7 +74,7 @@ export default function ChatClient({ userId, onEventsUpdated, onThinkingChange }
     if (isLoading) return
 
     // Create user message text
-    let messageText = val
+    let messageText = val || 'Analyzing image...'
     if (attachedFiles.length > 0) {
       messageText += `\n\n📎 Attached files: ${attachedFiles.map(f => f.name).join(', ')}`
     }
@@ -83,27 +83,40 @@ export default function ChatClient({ userId, onEventsUpdated, onThinkingChange }
     setMessages((prev) => [...prev, userMsg])
     setInput('')
     
-    // Store files info before clearing
-    const filesInfo = attachedFiles.map(f => ({
-      name: f.name,
-      type: f.type,
-      size: f.size
-    }))
+    // Store files before clearing
+    const filesToProcess = [...attachedFiles]
     setAttachedFiles([])
     setIsLoading(true)
 
     try {
-      // For now, we'll send file info as context to Claude
-      // In a full implementation, you'd upload files to storage first
-      let fullMessage = val
-      if (filesInfo.length > 0) {
-        fullMessage += `\n\nUser has attached ${filesInfo.length} file(s): ${filesInfo.map(f => `${f.name} (${f.type})`).join(', ')}`
-      }
+      // Convert image files to base64
+      const imagePromises = filesToProcess
+        .filter(f => f.type.startsWith('image/'))
+        .map(file => {
+          return new Promise((resolve) => {
+            const reader = new FileReader()
+            reader.onloadend = () => {
+              // Remove data URL prefix (e.g., "data:image/jpeg;base64,")
+              const base64 = reader.result.split(',')[1]
+              resolve({
+                data: base64,
+                media_type: file.type
+              })
+            }
+            reader.readAsDataURL(file)
+          })
+        })
+      
+      const images = await Promise.all(imagePromises)
 
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: fullMessage, userId })
+        body: JSON.stringify({ 
+          message: val, 
+          userId,
+          images: images.length > 0 ? images : undefined
+        })
       })
 
       const data = await res.json()
@@ -115,8 +128,8 @@ export default function ChatClient({ userId, onEventsUpdated, onThinkingChange }
         const botMsg = { id: Date.now() + 1, role: 'bot', text: data.message }
         setMessages((prev) => [...prev, botMsg])
         
-        // Trigger calendar refresh if events were created
-        if (data.events && data.events.length > 0) {
+        // Trigger calendar refresh if events were created OR schedule was cleared
+        if ((data.events && data.events.length > 0) || data.clearSchedule) {
           onEventsUpdated?.()
         }
       }
